@@ -1,0 +1,86 @@
+package co.com.crediya.api.exception;
+
+import co.com.crediya.api.dto.response.ErrorResponseHandler;
+import co.com.crediya.model.exception.DynamoException;
+import co.com.crediya.model.exception.SqsMessageException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.web.reactive.error.ErrorWebExceptionHandler;
+import org.springframework.core.Ordered;
+import org.springframework.core.codec.DecodingException;
+import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Component;
+import org.springframework.web.bind.support.WebExchangeBindException;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.server.ServerWebInputException;
+import reactor.core.publisher.Mono;
+
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+
+import static co.com.crediya.model.utils.Constant.STATUS_ERROR;
+
+
+@Slf4j
+@Component
+public class GlobalExceptionHandler implements ErrorWebExceptionHandler, Ordered {
+
+    private static final String UNEXPECTED_ERROR = "Unexpected error";
+    private final ObjectMapper objectMapper;
+
+    public GlobalExceptionHandler() {
+        this.objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    }
+
+    @Override
+    public Mono<Void> handle(ServerWebExchange exchange, Throwable ex) {
+        log.error("Handled exception: {}", ex.getClass().getSimpleName(), ex);
+        HttpStatus status = resolveStatus(ex);
+
+        ErrorResponseHandler errorBody = ErrorResponseHandler.builder()
+                .timestamp(LocalDateTime.now())
+                .status(STATUS_ERROR)
+                .error(ex.getClass().getSimpleName())
+                .message(ex.getMessage())
+                .build();
+
+        byte[] bytes;
+        try {
+            bytes = objectMapper.writeValueAsBytes(errorBody);
+        } catch (JsonProcessingException e) {
+            bytes = ("{\"error\":\"Serialization error\"}").getBytes(StandardCharsets.UTF_8);
+            log.error(UNEXPECTED_ERROR + "{}", exchange.getRequest().getPath(), e);
+        }
+
+        exchange.getResponse().setStatusCode(status);
+        exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
+        DataBuffer buffer = exchange.getResponse().bufferFactory().wrap(bytes);
+
+        return exchange.getResponse().writeWith(Mono.just(buffer));
+    }
+
+    private HttpStatus resolveStatus(Throwable ex) {
+        if (ex instanceof WebExchangeBindException) return HttpStatus.BAD_REQUEST;
+        if (ex instanceof ServerWebInputException) return HttpStatus.BAD_REQUEST;
+        if (ex instanceof ResponseStatusException e) return (HttpStatus) e.getStatusCode();
+        if (ex instanceof IllegalArgumentException) return HttpStatus.BAD_REQUEST;
+        if (ex instanceof InvalidFormatException) return HttpStatus.BAD_REQUEST;
+        if (ex instanceof DecodingException) return HttpStatus.BAD_REQUEST;
+        if (ex instanceof SqsMessageException) return HttpStatus.UNPROCESSABLE_ENTITY;
+        return HttpStatus.INTERNAL_SERVER_ERROR;
+    }
+
+    @Override
+    public int getOrder() {
+        return -1;
+    }
+}
