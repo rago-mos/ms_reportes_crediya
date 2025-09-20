@@ -28,6 +28,7 @@ subprojects {
     }
 
     dependencies {
+		implementation platform('software.amazon.awssdk:bom:2.33.1')
         implementation 'io.projectreactor:reactor-core'
         implementation 'io.projectreactor.addons:reactor-extra'
 
@@ -94,6 +95,16 @@ tasks.register('jacocoMergedReport', JacocoReport) {
     sourceDirectories.setFrom files(subprojects.sourceSets.main.allSource.srcDirs)
     classDirectories.setFrom files(subprojects.sourceSets.main.output)
     executionData.setFrom project.fileTree(dir: '.', include: '**/build/jacoco/test.exec')
+    classDirectories.setFrom(files(classDirectories.files.collect {
+        fileTree(dir: it, exclude: [
+                '/co/com/crediya/metrics/aws',
+                '/co/com/crediya/security/provider',
+                '/co/com/crediya/security/config',
+                '/co/com/crediya/dynamodb/helper',
+                '/co/com/crediya/dynamodb/template',
+                '/co/com/crediya/MainApplication.class'
+        ])
+    }))
     reports {
         xml.setRequired true
         csv.setRequired false
