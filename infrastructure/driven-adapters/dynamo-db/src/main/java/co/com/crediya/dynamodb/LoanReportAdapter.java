@@ -48,8 +48,7 @@ public class LoanReportAdapter implements ReportLoanRepository {
         var updateRequest = UpdateItemRequest.builder()
                 .tableName(TABLE_NAME)
                 .key(Map.of(ID_TABLE, AttributeValue.fromS(ID_TABLE_VALUE)))
-                .updateExpression("SET total_loan = if_not_exists(total_loan, :zero) + :addLoan, " +
-                        "total_amount = if_not_exists(total_amount, :zero) + :addAmount")
+                .updateExpression(SET_UPDATED_SENTENCE)
                 .expressionAttributeValues(Map.of(
                         ":addLoan", AttributeValue.fromN("1"),
                         ":addAmount", AttributeValue.fromN(amountAdd.toPlainString()),

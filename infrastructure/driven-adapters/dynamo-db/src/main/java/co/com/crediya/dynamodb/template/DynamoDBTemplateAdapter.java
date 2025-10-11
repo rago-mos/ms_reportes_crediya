@@ -19,11 +19,7 @@ import java.util.List;
 public class DynamoDBTemplateAdapter extends TemplateAdapterOperations<ReportLoan, String, ReportLoanEntity> implements ReportLoanTemplateRepository {
 
     public DynamoDBTemplateAdapter(DynamoDbEnhancedAsyncClient connectionFactory, ObjectMapper mapper) {
-        /**
-         *  Could be use mapper.mapBuilder if your domain model implement builder pattern
-         *  super(repository, mapper, d -> mapper.mapBuilder(d,ObjectModel.ObjectModelBuilder.class).build());
-         *  Or using mapper.map with the class of the object model
-         */
+
         super(connectionFactory, mapper, d -> mapper.map(d, ReportLoan.class), "loan_report");
     }
 
@@ -34,7 +30,7 @@ public class DynamoDBTemplateAdapter extends TemplateAdapterOperations<ReportLoa
 
     public Mono<List<ReportLoan>> getEntityBySomeKeysByIndex(String partitionKey, String sortKey) {
         QueryEnhancedRequest queryExpression = generateQueryExpression(partitionKey, sortKey);
-        return queryByIndex(queryExpression, "secondary_index" /*index is optional if you define in constructor*/);
+        return queryByIndex(queryExpression, "secondary_index");
     }
 
     private QueryEnhancedRequest generateQueryExpression(String partitionKey, String sortKey) {

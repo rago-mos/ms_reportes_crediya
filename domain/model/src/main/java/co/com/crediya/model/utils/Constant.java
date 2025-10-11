@@ -7,6 +7,7 @@ public class Constant {
     public static final String TOTAL_LOAN = "total_loan";
     public static final String TOTAL_AMOUNT = "total_amount";
     public static final String ID_TABLE = "id_loan_report";
+    public static final String SET_UPDATED_SENTENCE = "SET total_loan = if_not_exists(total_loan, :zero) + :addLoan, total_amount = if_not_exists(total_amount, :zero) + :addAmount";
 
     public static final String LOG_INFO_REPORT = "report generated";
     public static final String LOG_INFO_GET_REPORT = "Successfully updating report";

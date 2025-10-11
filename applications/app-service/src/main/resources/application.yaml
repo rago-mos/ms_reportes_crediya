@@ -23,7 +23,7 @@ entrypoint:
     visibilityTimeoutSeconds: 10
     numberOfThreads: 1
 aws:
-  region: ${AWS_REGION}
+  region: "${AWS_REGION}"
 management:
   endpoints:
     web:
